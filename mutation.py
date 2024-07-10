@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import re
 
-def load_data(txt_files, folder_path, is_record, fraction_of_anomaly):
+def load_data(txt_files, folder_path, is_record, fraction_of_anomaly, mutation = True):
     dataset = []
     pattern = r'_(\d+)_(\d+)_(\d+)\.txt$'
     count_of_matching_files = 0
@@ -32,18 +32,22 @@ def load_data(txt_files, folder_path, is_record, fraction_of_anomaly):
                                 
             df = pd.DataFrame(values, columns=['feature'])
         
-            # My convention: 0 means normal data and 1 means an anomaly
-            df['is_anomaly'] = 0
-        
-            for each in range(begin_anomaly, end_anomaly+1):
-                df.loc[df.index == each, 'is_anomaly'] = 1
+            
                     
-            if is_record:
-                noisy_df = mutation(df,last_training_data,record = True, fraction_of_anomaly = fraction_of_anomaly)
-                dataset.append((noisy_df,last_training_data))
+            if mutation is True:
+                if is_record:
+                    # My convention: 0 means normal data and 1 means an anomaly
+                    df['is_anomaly'] = 0
+                
+                    for each in range(begin_anomaly, end_anomaly+1):
+                        df.loc[df.index == each, 'is_anomaly'] = 1
+                    noisy_df = mutation(df,last_training_data,record = True, fraction_of_anomaly = fraction_of_anomaly)
+                    dataset.append((noisy_df,last_training_data))
+                else:
+                    noisy_df = mutation(df,last_training_data,record = False, fraction_of_anomaly = fraction_of_anomaly)
+                    dataset.append((noisy_df,last_training_data))
             else:
-                noisy_df = mutation(df,last_training_data,record = False, fraction_of_anomaly = fraction_of_anomaly)
-                dataset.append((noisy_df,last_training_data))
+                dataset.append((df, last_training_data, begin_anomaly, end_anomaly))
             count_of_matching_files = count_of_matching_files + 1
         else:
             print(f"No match found in file: {txt_file}")
