@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import re
 
-def load_data(txt_files, folder_path, is_record, fraction_of_anomaly, mutation = True):
+def load_data(txt_files, folder_path, is_record, fraction_of_anomaly, mutation_done = True):
     dataset = []
     pattern = r'_(\d+)_(\d+)_(\d+)\.txt$'
     count_of_matching_files = 0
@@ -34,18 +34,18 @@ def load_data(txt_files, folder_path, is_record, fraction_of_anomaly, mutation =
         
             
                     
-            if mutation is True:
+            if mutation_done is True:
+                # My convention: 0 means normal data and 1 means an anomaly
+                df['is_anomaly'] = 0
+                for each in range(begin_anomaly, end_anomaly+1):
+                    df.loc[df.index == each, 'is_anomaly'] = 1
+                    
                 if is_record:
-                    # My convention: 0 means normal data and 1 means an anomaly
-                    df['is_anomaly'] = 0
-                
-                    for each in range(begin_anomaly, end_anomaly+1):
-                        df.loc[df.index == each, 'is_anomaly'] = 1
                     noisy_df = mutation(df,last_training_data,record = True, fraction_of_anomaly = fraction_of_anomaly)
-                    dataset.append((noisy_df,last_training_data))
+                    dataset.append((noisy_df,last_training_data, begin_anomaly, end_anomaly))
                 else:
                     noisy_df = mutation(df,last_training_data,record = False, fraction_of_anomaly = fraction_of_anomaly)
-                    dataset.append((noisy_df,last_training_data))
+                    dataset.append((noisy_df,last_training_data, begin_anomaly, end_anomaly))
             else:
                 dataset.append((df, last_training_data, begin_anomaly, end_anomaly))
             count_of_matching_files = count_of_matching_files + 1
@@ -53,10 +53,12 @@ def load_data(txt_files, folder_path, is_record, fraction_of_anomaly, mutation =
             print(f"No match found in file: {txt_file}")
 
     print(f'Number of matching files: {count_of_matching_files}')
+    print('One sample dataframe: ')
+    print(dataset[0])
     return dataset
 
 def add_noise(original_time_series, last_training_data, noise_level, fraction_of_anomaly): # anomolous record
-    print("Adding noise")
+    # print("Adding noise")
     time_series = original_time_series.copy()
     # Number of points to modify
     n_points = int(len(time_series[:last_training_data]) * fraction_of_anomaly)
@@ -72,7 +74,7 @@ def add_noise(original_time_series, last_training_data, noise_level, fraction_of
     return time_series
 
 def horizontal_shift(original_time_series, last_training_data, shift_amount = 15, fraction_of_anomaly = 0.01): # anomolous sequence
-    print("Horizontal shift")
+    # print("Horizontal shift")
     time_series = original_time_series.copy()
     # Number of points to modify
     n_points = int(len(time_series[:last_training_data]) * fraction_of_anomaly) 
@@ -97,8 +99,8 @@ def horizontal_shift(original_time_series, last_training_data, shift_amount = 15
     time_series.loc[start_index:end_index + shift_amount, 'is_anomaly'] = 1
     return time_series
 
-def vertical_shift(original_time_series,last_training_data, fraction_of_anomaly): # anomolous sequence
-    print("Vertical shift")
+def vertical_shift(original_time_series,last_training_data, fraction_of_anomaly = 0.01): # anomolous sequence
+    # print("Vertical shift")
     time_series = original_time_series.copy()
     n_points = int(len(time_series[:last_training_data]) * fraction_of_anomaly)
     
@@ -120,8 +122,8 @@ def vertical_shift(original_time_series,last_training_data, fraction_of_anomaly)
     
     return time_series
 
-def rescale(original_time_series, last_training_data, factor = 2.5, fraction_of_anomaly = 0.01): # anomolous sequence
-    print("rescale")
+def rescale(original_time_series, last_training_data, factor = 3, fraction_of_anomaly = 0.01): # anomolous sequence
+    # print("rescale")
     time_series = original_time_series.copy()
     n_points = int(len(time_series[:last_training_data]) * fraction_of_anomaly)  # 1% of the time series data
     
@@ -137,8 +139,8 @@ def rescale(original_time_series, last_training_data, factor = 2.5, fraction_of_
     
     return time_series
 
-def add_dense_noise(original_time_series, last_training_data, fraction_of_anomaly):
-    print("adding dense noise")
+def add_dense_noise(original_time_series, last_training_data, fraction_of_anomaly = 0.01):
+    # print("adding dense noise")
     time_series = original_time_series.copy()
     n_points = int(len(time_series[:last_training_data]) * fraction_of_anomaly)  # Modify 1% of the time series data
     
